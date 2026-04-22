@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexus DC — Sales Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0d14;--bg2:#0f1420;--surface:#131928;--surface2:#1a2235;--surface3:#1f2840;
+  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);
+  --text:#e8ecf4;--text2:#9aa5bc;--muted:#5c6780;
+  --blue:#3d7fff;--blue2:#2563eb;--blue-glow:rgba(61,127,255,.15);
+  --green:#22c55e;--green-dim:rgba(34,197,94,.12);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.12);
+  --cyan:#06b6d4;--cyan-dim:rgba(6,182,212,.12);
+  --purple:#a855f7;--purple-dim:rgba(168,85,247,.12);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,13,20,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:8px;height:52px}
+.nav-brand{font-weight:700;font-size:15px;color:var(--text);margin-right:auto;display:flex;align-items:center;gap:8px}
+.nav-brand span{color:var(--blue)}
+.nav-tab{padding:6px 14px;border-radius:8px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;transition:.15s;font-weight:500}
+.nav-tab:hover{background:var(--surface2);color:var(--text)}
+.nav-tab.active{background:var(--blue2);color:#fff}
+
+/* LAYOUT */
+.page{display:none;padding:24px;max-width:1400px;margin:0 auto}
+.page.active{display:block}
+
+/* METRICS GRID */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.blue::before{background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.metric.green::before{background:linear-gradient(90deg,var(--green),#86efac)}
+.metric.amber::before{background:linear-gradient(90deg,var(--amber),#fde68a)}
+.metric.purple::before{background:linear-gradient(90deg,var(--purple),#d8b4fe)}
+.metric.red::before{background:linear-gradient(90deg,var(--red),#fca5a5)}
+.metric-val{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.metric.blue .metric-val{color:var(--blue)}
+.metric.green .metric-val{color:var(--green)}
+.metric.amber .metric-val{color:var(--amber)}
+.metric.purple .metric-val{color:var(--purple)}
+.metric.red .metric-val{color:var(--red)}
+.metric-label{font-size:12px;color:var(--text2);font-weight:500}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* FUNNEL */
+.funnel-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px}
+.funnel-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
+.funnel-stages{display:flex;align-items:stretch;gap:0}
+.funnel-stage{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+.funnel-stage:not(:last-child)::after{content:'';position:absolute;right:-1px;top:50%;transform:translateY(-50%);width:0;height:0;border-top:18px solid transparent;border-bottom:18px solid transparent;border-left:14px solid var(--bg);z-index:2}
+.fs-bar{width:100%;border-radius:6px 0 0 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 8px;gap:4px;position:relative}
+.funnel-stage:last-child .fs-bar{border-radius:6px}
+.funnel-stage:first-child .fs-bar{border-radius:6px 0 0 6px}
+.fs-count{font-size:24px;font-weight:800;color:#fff}
+.fs-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.7);text-align:center;line-height:1.2}
+.fs-pct{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px}
+.fs-arrow{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px;padding:0 4px;flex-shrink:0;align-self:center}
+
+/* CHARTS ROW */
+.charts-row{display:grid;grid-template-columns:1.8fr 1fr;gap:12px;margin-bottom:24px}
+.hero-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:24px}
+.hot-deals{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;overflow:hidden;position:relative}
+.hot-deals::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#ef4444,#f59e0b,#a855f7)}
+.hd-title{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.hd-title h3{font-size:14px;font-weight:700}
+.hd-title .pulse{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(239,68,68,.7);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}70%{box-shadow:0 0 0 8px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.hd-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto}
+.hd-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.15s}
+.hd-item:hover{border-color:var(--amber);background:var(--surface3);transform:translateX(2px)}
+.hd-rank{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;background:var(--amber-dim);color:var(--amber)}
+.hd-item:nth-child(1) .hd-rank{background:rgba(239,68,68,.2);color:var(--red)}
+.hd-item:nth-child(2) .hd-rank{background:rgba(245,158,11,.2);color:var(--amber)}
+.hd-item:nth-child(3) .hd-rank{background:rgba(168,85,247,.2);color:var(--purple)}
+.hd-info{flex:1;min-width:0}
+.hd-company{font-weight:600;font-size:13px;margin-bottom:2px}
+.hd-meta{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hd-score{text-align:right;flex-shrink:0}
+.hd-score-val{font-size:16px;font-weight:800;color:var(--green);line-height:1}
+.hd-score-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+/* NEXT ACTIONS */
+.next-actions{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.na-title{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.na-title h3{font-size:14px;font-weight:700}
+.na-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.na-item:last-child{border-bottom:none}
+.na-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.na-content{flex:1;min-width:0}
+.na-action{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.na-detail{font-size:11px;color:var(--text2);line-height:1.4}
+.na-count{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0}
+
+/* GEO / REGIONS */
+.geo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.geo-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;cursor:pointer;transition:.15s}
+.geo-card:hover{border-color:var(--border2);background:var(--surface3)}
+.geo-flag{font-size:18px;margin-bottom:4px;display:block}
+.geo-count{font-size:22px;font-weight:800;line-height:1;margin-bottom:2px}
+.geo-label{font-size:11px;color:var(--text2);font-weight:500}
+.geo-bar{position:absolute;bottom:0;left:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+
+/* COMMIT BAR */
+.commit-bar{display:flex;gap:4px;height:32px;border-radius:8px;overflow:hidden;margin-top:14px;border:1px solid var(--border)}
+.commit-seg{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;transition:.2s}
+.commit-seg:hover{opacity:.85;transform:scaleY(1.05)}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.chart-card-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
+canvas{width:100%!important}
+
+/* SEARCH & FILTERS */
+.controls{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.search-wrap{position:relative;flex:1;min-width:200px}
+.search-wrap input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 12px 8px 36px;color:var(--text);font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:.15s}
+.search-wrap input:focus{border-color:var(--blue);background:var(--surface2)}
+.search-wrap input::placeholder{color:var(--muted)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.filter-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;transition:.15s}
+.filter-btn:hover{border-color:var(--border2);background:var(--surface2);color:var(--text)}
+.filter-btn.active{background:var(--blue2);border-color:var(--blue2);color:#fff}
+.count-badge{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--text2);margin-left:auto}
+
+/* TABLE */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--surface2);border-bottom:1px solid var(--border2)}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:.12s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+td{padding:10px 14px;font-size:13px;vertical-align:middle}
+.td-company{font-weight:600;color:var(--text);max-width:200px}
+.td-company a{color:var(--blue);text-decoration:none;font-size:11px;display:block;font-weight:400;margin-top:2px}
+.td-company a:hover{text-decoration:underline}
+.td-name{color:var(--text2);font-size:12px;max-width:160px}
+.td-about{color:var(--muted);font-size:12px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* STATUS BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-yes{background:var(--green-dim);color:var(--green)}
+.badge-no{background:rgba(255,255,255,.04);color:var(--muted)}
+.badge-meeting{background:var(--blue-glow);color:var(--blue)}
+.stage-chip{padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
+.modal-company{font-size:18px;font-weight:700}
+.modal-role{font-size:13px;color:var(--text2);margin-top:3px}
+.modal-close{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:18px;padding:4px 10px;line-height:1}
+.modal-body{padding:20px 24px}
+.modal-row{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.modal-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.modal-field{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:3px}
+.modal-value{font-size:13px;color:var(--text)}
+.modal-summary{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;color:var(--text2);line-height:1.6;margin-top:8px}
+.modal-summary-title{font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.pipeline-stages{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ps{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.ps.done{background:var(--green-dim);color:var(--green)}
+.ps.todo{background:rgba(255,255,255,.04);color:var(--muted);text-decoration:line-through}
+
+/* MEETINGS PAGE */
+.meetings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.meeting-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:.15s;cursor:pointer}
+.meeting-card:hover{border-color:var(--border2);background:var(--surface2)}
+.mc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.mc-company{font-size:15px;font-weight:700}
+.mc-role{font-size:12px;color:var(--text2);margin-top:2px}
+.mc-summary{font-size:13px;color:var(--text2);line-height:1.6;border-left:3px solid var(--blue);padding-left:12px;margin-top:10px}
+.mc-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+
+/* SECTION TITLES */
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* PRIORITY FLAG */
+.priority-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.p-hot{background:var(--red)}
+.p-warm{background:var(--amber)}
+.p-cold{background:var(--muted)}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .charts-row{grid-template-columns:1fr}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .page{padding:16px}
+  th:nth-child(n+5){display:none}
+  td:nth-child(n+5){display:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect width="20" height="20" rx="5" fill="#3d7fff"/><path d="M5 10h10M10 5v10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+    Nexus DC <span>Sales</span>
+  </div>
+  <button class="nav-tab active" onclick="showPage('overview',this)">Обзор</button>
+  <button class="nav-tab" onclick="showPage('pipeline',this)">Воронка</button>
+  <button class="nav-tab" onclick="showPage('leads',this)">Лиды</button>
+  <button class="nav-tab" onclick="showPage('meetings',this)">Встречи</button>
+</nav>
+
+<!-- OVERVIEW -->
+<div id="page-overview" class="page active">
+  <div class="metrics" id="metrics"></div>
+
+  <div class="hero-row">
+    <div class="hot-deals">
+      <div class="hd-title"><span class="pulse"></span><h3>🔥 Hot deals — приоритетная компания для выхода на сделку --> подтверждение PMF</h3></div>
+      <div class="hd-list" id="hot-deals"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Конверсия по этапам</div>
+      <canvas id="chartConversion" height="180"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- PIPELINE -->
+<div id="page-pipeline" class="page">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="pipeline-cols"></div>
+</div>
+
+<!-- LEADS -->
+<div id="page-leads" class="page">
+  <div class="controls">
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="search" placeholder="Поиск по компании, имени, роли..." oninput="filterLeads()">
+    </div>
+    <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
+    <button class="filter-btn" onclick="setFilter('hot',this)">🔥 Встречи</button>
+    <button class="filter-btn" onclick="setFilter('replied',this)">✉️ Ответили</button>
+    <button class="filter-btn" onclick="setFilter('cold',this)">❄️ Без ответа</button>
+    <span class="count-badge" id="leads-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table id="leads-table">
+      <thead><tr>
+        <th>Компания</th>
+        <th>Контакт</th>
+        <th>Кратко</th>
+        <th>Письмо</th>
+        <th>Ответ</th>
+        <th>Фоллоуап</th>
+        <th>Встреча</th>
+      </tr></thead>
+      <tbody id="leads-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MEETINGS -->
+<div id="page-meetings" class="page">
+  <div class="section-title">Проведено встреч · <span style="color:var(--green)">22</span></div>
+  <div class="meetings-grid" id="meetings-grid"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const LEADS = [{"company": "РТК-ЦОД", "site": "https://www.company.rt.ru/press/news/d477081/", "meeting": false, "letter": true, "followup": true, "replied": true, "summary": "", "name": "Давид Мартиросов", "role_ru": "Генеральный директор", "role_en": "Executive / Infra / Cloud", "about": "Крупнейший оператор коммерческих дата-центров в России, облачные и инфраструктурные сервисы", "linkedin": "https://ru.linkedin.com/in/david-martirosov-4017251a/ru"}, {"company": "Selectel", "site": "https://selectel.ru/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Интерес к thermal/GPU-зонам и высоконагрузке; ждут предложение после внутренней проверки ИБ.", "name": "Олег Любимов", "role_ru": "CEO", "role_en": "Executive / Cloud & Data Center Infrastructure", "about": "Крупный российский провайдер облачной и дата-центровой инфраструктуры", "linkedin": "https://ru.linkedin.com/in/oleg-lyubimov"}, {"company": "MTS Web Services / МТС", "site": "https://cloud.mts.ru/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Обсудили интеграцию с GPU/облаком и снижение PUE под AI; договорились прислать техбриф для архитектурной сессии.", "name": "Victor Belov", "role_ru": "CTO at MTS Group", "role_en": "Technology / Infrastructure", "about": "Крупный телеком и инфраструктурный игрок; облако и инфраструктурные сервисы", "linkedin": "https://ru.linkedin.com/in/victorbelov"}, {"company": "VIRTUS Data Centres", "site": "https://virtusdatacentres.com/about-virtus/people", "meeting": false, "letter": true, "followup": true, "replied": true, "summary": "", "name": "Adam Eaton", "role_ru": "Chief Executive Officer", "role_en": "Executive / Data Center Growth", "about": "Крупные дата-центры в Великобритании и Европе", "linkedin": "https://uk.linkedin.com/in/adameaton85"}, {"company": "STACK Infrastructure", "site": "https://www.stackinfra.com/about/meet-the-team/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Фокус на EMEA hyperscale: predictive cooling и multi-site alerting; следующий шаг — звонок с инженерами региона.", "name": "Donough Roche", "role_ru": "Chief Operations Officer, STACK EMEA", "role_en": "Operations / Client Services", "about": "Гиперскейл и enterprise дата-центры в Americas, EMEA и APAC", "linkedin": "https://www.linkedin.com/in/donough"}, {"company": "Equinix", "site": "https://www.equinix.com/about/leadership", "meeting": false, "letter": true, "followup": true, "replied": true, "summary": "", "name": "Raouf Abdel", "role_ru": "Executive Vice President, Global Operations", "role_en": "Global Operations", "about": "Международный оператор дата-центров и interconnection", "linkedin": "https://www.linkedin.com/in/rabdel"}, {"company": "NTT Global Data Centers", "site": "https://services.global.ntt/en-us/services-and-products/global-data-centers", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Интерес к предиктивному мониторингу флота и согласованию с NOC; планируется техсессия с командой эксплуатации.", "name": "Doug Adams", "role_ru": "President and CEO", "role_en": "Executive / Global Data Centers", "about": "Глобальная сеть 160+ дата-центров", "linkedin": "https://www.linkedin.com/in/doug-adams-a9b45"}, {"company": "Portus Data Centers", "site": "https://www.portusdatacenters.com/about-portus/our-leadership/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Richard Pimper", "role_ru": "Chief Operating Officer & Chief Technology Officer", "role_en": "Operations / Technology", "about": "Carrier-neutral edge и colocation в Европе", "linkedin": "https://de.linkedin.com/in/richard-pimper-4014853"}, {"company": "Colt Data Centre Services", "site": "https://www.coltdatacentres.net/en-GB/about/management-team", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Kev Shieber", "role_ru": "Chief Operations Officer", "role_en": "Operations", "about": "Hyperscale data centers в Европе и Азии", "linkedin": "https://uk.linkedin.com/in/kevshieber"}, {"company": "CyrusOne", "site": "https://www.cyrusone.com/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Акцент на интеграции с DCIM и real-time thermal analytics; ждут формат PoC и критерии успеха.", "name": "Eric Schwartz", "role_ru": "Chief Executive Officer", "role_en": "Executive / Digital Infrastructure", "about": "Hyperscale и enterprise дата-центры", "linkedin": "https://www.linkedin.com/in/eric-schwartz-b23492"}, {"company": "QTS Data Centers", "site": "https://q.com/our-leadership/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Tag Greason", "role_ru": "Co-Chief Executive Officer", "role_en": "Executive / Growth", "about": "Цифровые инфраструктурные кампусы в США и Европе", "linkedin": "https://www.linkedin.com/in/tag-greason"}, {"company": "Vantage Data Centers", "site": "https://vantage-dc.com/company/leadership/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Sureel Choksi", "role_ru": "President & Chief Executive Officer", "role_en": "Executive / Strategy", "about": "Hyperscale дата-центры в Северной Америке, EMEA и APAC", "linkedin": "https://vantage-dc.com/vantage_leadership/sureel-choksi/"}, {"company": "DataBank", "site": "https://www.databank.com/about-databank/leadership-team/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Понравился predictive maintenance; уточняют per-MW модель и стыковку с DCIM перед коммерческим предложением.", "name": "Raul K. Martynek", "role_ru": "Chief Executive Officer", "role_en": "Executive / Data Center Strategy", "about": "Colocation, cloud и interconnection в США и Европе", "linkedin": "https://www.linkedin.com/in/raulmartynek"}, {"company": "Cologix", "site": "https://cologix.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Laura Ortman", "role_ru": "Chief Executive Officer", "role_en": "Executive / Interconnection & Edge Data Centers", "about": "Network-neutral interconnection и edge дата-центры Северной Америки", "linkedin": "https://cologix.com/news/cologix-board-appoints-laura-ortman-as-chief-executive-officer/"}, {"company": "CoreSite", "site": "https://www.coresite.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Juan Font", "role_ru": "President and CEO", "role_en": "Executive / Hybrid IT & Data Centers", "about": "Высокосвязные дата-центры и hybrid IT в США", "linkedin": "https://www.linkedin.com/in/juan-font-97263"}, {"company": "Iron Mountain Data Centers", "site": "https://www.ironmountain.com/data-centers", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Mark Kidd", "role_ru": "EVP & Global General Manager, Data Centers", "role_en": "Operations / Data Centers", "about": "Глобальная colocation-платформа", "linkedin": "https://ch.linkedin.com/in/marknkidd"}, {"company": "AtlasEdge", "site": "https://atlasedge.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Edge-площадки с малым персоналом: ценность remote proactive ops; договорились о демо на выбранном EU-объекте.", "name": "Tesh Durvasula", "role_ru": "Chief Executive Officer", "role_en": "Executive / European Edge Data Centers", "about": "Edge data center оператор в 12 странах Европы", "linkedin": "https://uk.linkedin.com/in/teshdurvasula"}, {"company": "EdgeConneX", "site": "https://www.edgeconnex.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Randy Brouckman", "role_ru": "Chief Executive Officer", "role_en": "Executive / Global Data Center Infrastructure", "about": "Глобальные дата-центры для cloud и AI", "linkedin": "https://www.edgeconnex.com/company/management-team/randy-brouckman/"}, {"company": "eStruxture Data Centers", "site": "https://www.estruxture.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Todd Coleman", "role_ru": "Founder, President, CEO and Chairman", "role_en": "Executive / Canadian Data Centers", "about": "Крупнейший канадский cloud-neutral оператор дата-центров", "linkedin": "https://ca.linkedin.com/in/tocoleman"}, {"company": "Digital Edge DC", "site": "https://www.digitaledgedc.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "John Freeman", "role_ru": "Chief Executive Officer", "role_en": "Executive / APAC Data Centers", "about": "AI- и cloud-ready дата-центры в Asia Pacific", "linkedin": "https://sg.linkedin.com/in/john-freeman-6809948"}, {"company": "Princeton Digital Group", "site": "https://www.princetondg.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Rangu Salgame", "role_ru": "Chairman, CEO & Co-Founder", "role_en": "Executive / Asian Digital Infrastructure", "about": "Цифровая инфраструктура и дата-центры в Азии", "linkedin": "https://www.linkedin.com/in/rangu-salgame-10b251b"}, {"company": "Flexential", "site": "https://www.flexential.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Ryan Mallory", "role_ru": "Chief Executive Officer", "role_en": "Executive / Hybrid IT & Data Centers", "about": "Colocation, cloud, connectivity в США", "linkedin": "https://www.linkedin.com/in/ryan-mallory-3483504"}, {"company": "Digital Realty", "site": "https://www.digitalrealty.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Andy Power", "role_ru": "President & Chief Executive Officer", "role_en": "Executive / Global Digital Infrastructure", "about": "Крупный мировой оператор дата-центров", "linkedin": "https://www.digitalrealty.com/about/leadership"}, {"company": "Khazna Data Centers", "site": "https://khaznadatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Hassan Alnaqbi", "role_ru": "Chief Executive Officer", "role_en": "Executive / Middle East Hyperscale Data Centers", "about": "Hyperscale data centers на Ближнем Востоке", "linkedin": "https://ae.linkedin.com/in/hassan-alnaqbi"}, {"company": "Prime Data Centers", "site": "https://primedatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Nicholas Laag", "role_ru": "Founder & CEO", "role_en": "Executive / Hyperscale Development", "about": "High-performance и hyperscale дата-центры в США и Европе", "linkedin": "https://www.linkedin.com/in/nicholas-laag-41139a14"}, {"company": "Green Mountain", "site": "https://greenmountain.no", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Halvor Bjerke", "role_ru": "Managing Director, Nordics", "role_en": "Operations / Sustainable Data Centers", "about": "Устойчивые дата-центры в Норвегии и UK", "linkedin": "https://no.linkedin.com/in/halvor-bjerke-54507a2"}, {"company": "GDS Holdings", "site": "https://www.gds-services.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "William Wei Huang", "role_ru": "Founder, Chairman and CEO", "role_en": "Executive / China & Southeast Asia Data Centers", "about": "Высокопроизводительные дата-центры в Китае и SEA", "linkedin": "https://investors.gds-services.com/management/william-wei-huang"}, {"company": "Ascenty", "site": "https://ascenty.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Chris Torto", "role_ru": "Founder & CEO", "role_en": "Executive / LATAM Data Centers & Fiber", "about": "Дата-центры и fiber в Латинской Америке", "linkedin": "https://events.tmtfinance.com/usa/speakers/chris-torto-ceo-ascenty"}, {"company": "Chindata Group", "site": "https://www.chindatagroup.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Wu Huapeng", "role_ru": "Chief Executive Officer", "role_en": "Executive / Hyperscale & AI Infrastructure", "about": "Hyperscale дата-центры в Китае и APAC", "linkedin": "https://www.chindatagroup.com/media/news/353.html"}, {"company": "DartPoints", "site": "https://dartpoints.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Scott Willis", "role_ru": "President and CEO", "role_en": "Executive / Edge & Regional Data Centers", "about": "Edge и regional data centers в Северной Америке", "linkedin": "https://www.linkedin.com/in/scott-willis-5b58625"}, {"company": "atNorth", "site": "https://www.atnorth.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Очень позитивно: thermal intelligence и proactive ops в high-density; договорились о pricing и use-cases для пилота.", "name": "Eyjolfur Magnus Kristinsson", "role_ru": "Chief Executive Officer", "role_en": "Executive / Nordic Sustainable Data Centers", "about": "Sustainable high-density colocation, Nordics", "linkedin": "https://www.prnewswire.com/news-releases/cpp-investments-and-equinix-join-forces-to-acquire-atnorth-to-further-accelerate-growth-in-the-nordics-302699452.html"}, {"company": "EcoDataCenter", "site": "https://ecodatacenter.tech", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Peter Michelson", "role_ru": "Chief Executive Officer", "role_en": "Executive / Green Data Centers", "about": "«Зелёные» дата-центры в Швеции", "linkedin": "https://ecodatacenter.tech/about-ecodatacenter/management"}, {"company": "BDx Data Centers", "site": "https://www.bdxworld.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Mayank Srivastava", "role_ru": "Chief Executive Officer", "role_en": "Executive / APAC Data Centers", "about": "Colocation и AI-ready платформа в Азии", "linkedin": "https://sg.linkedin.com/in/mayank-srivastava-3895204"}, {"company": "Bridge Data Centres", "site": "https://www.bridgedatacentres.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Похожая история atNorth: интерес к fleet-мониторингу APAC; ждут детализированное предложение под hyperscale.", "name": "Eric Fan", "role_ru": "Chief Executive Officer", "role_en": "Executive / APAC Hyperscale Data Centers", "about": "Wholesale/hyperscale оператор в APAC", "linkedin": "https://sg.linkedin.com/in/eric-fan-74639610"}, {"company": "SC Zeus Data Centers", "site": "https://www.zeusdatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Joe Gooi", "role_ru": "Chief Executive Officer", "role_en": "Executive / APAC AI-Ready Data Centers", "about": "AI-ready data centers в Азии", "linkedin": "https://sg.linkedin.com/in/joegooi"}, {"company": "Switch", "site": "https://www.switch.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Rob Roy", "role_ru": "Founder & CEO", "role_en": "Executive / Large-Scale Data Center Campuses", "about": "Крупные data center campuses в США", "linkedin": "https://www.switch.com/rob-roy/"}, {"company": "Ростелеком-ЦОД", "site": "https://rt-dc.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Давид Мартиросов", "role_ru": "Генеральный директор", "role_en": "Executive / Коммерческие ЦОД и облачная инфраструктура", "about": "Коммерческие дата-центры и облако в России", "linkedin": "https://ru.linkedin.com/in/david-martirosov-4017251a/ru"}, {"company": "IXcellerate", "site": "https://www.ixcellerate.com/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Андрей Аксенов", "role_ru": "Генеральный директор", "role_en": "Executive / Colocation & Commercial Data Centers", "about": "Крупный colocation-оператор в России", "linkedin": "mailto:sales@ixcellerate.ru"}, {"company": "DataPro", "site": "https://datapro.ru/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Tier IV контур: снижение MTTR и проактивный контроль охлаждения; рассматривают пилот на одной площадке в Москве.", "name": "Евгений Богданчиков", "role_ru": "Генеральный директор", "role_en": "Executive / Independent Tier III-IV Data Centers", "about": "Независимый оператор Tier III/IV в России", "linkedin": ""}, {"company": "3data", "site": "https://3data.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Илья Хала", "role_ru": "Генеральный директор", "role_en": "Executive / Distributed Data Center Network", "about": "Распределённая сеть клубных ЦОД", "linkedin": ""}, {"company": "OXYGEN", "site": "https://o2dc.ru/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Павел Кулаков", "role_ru": "Основатель и генеральный директор", "role_en": "Executive / Data Centers & Cloud Platforms", "about": "Коммерческие ЦОД и облачные платформы", "linkedin": ""}, {"company": "Linx", "site": "https://ru.linxdatacenter.com/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Михаил Ветров", "role_ru": "Генеральный директор", "role_en": "Executive / Colocation, Cloud & Enterprise Infrastructure", "about": "ЦОД и облако в Москве и СПб", "linkedin": ""}, {"company": "Key Point", "site": "https://dc-keypoint.ru/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Евгений Вирцер", "role_ru": "Основатель и генеральный директор", "role_en": "Executive / Regional Tier III Data Centers", "about": "Региональная сеть Tier III в России", "linkedin": ""}, {"company": "МегаФон", "site": "https://b2b.megafon.ru/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Александр Осипов", "role_ru": "Директор по облачным платформам", "role_en": "Executive / Cloud Platforms & Infrastructure Solutions", "about": "Облачные решения для корпоративных клиентов", "linkedin": ""}, {"company": "АТОМДАТА", "site": "https://atomdata.ru/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Олег Максименков", "role_ru": "Генеральный директор", "role_en": "Executive / Rosatom Data Center Infrastructure", "about": "Инфраструктура ЦОД Росатома", "linkedin": "https://ru.linkedin.com/in/%D0%BE%D0%BB%D0%B5%D0%B3-%D0%BC%D0%B0%D0%BA%D1%81%D0%B8%D0%BC%D0%B5%D0%BD%D0%BA%D0%BE%D0%B2-0176aa6b"}, {"company": "BitRiver", "site": "https://bitriver.com/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Игорь Рунец", "role_ru": "Founder & CEO", "role_en": "Executive / Mining Data Centers", "about": "Инфраструктура для промышленного майнинга", "linkedin": "https://ru.linkedin.com/in/irunets"}, {"company": "Intelion", "site": "https://intelionmine.ru/data-centers", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Тимофей Семенов", "role_ru": "Генеральный директор", "role_en": "Executive / High-Density Mining & HPC Infrastructure", "about": "Инфраструктура для майнинга и HPC", "linkedin": ""}, {"company": "GIS Mining", "site": "https://gis-mining.ru/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Высокая применимость для энергоёмких площадок; обсуждают цену и приложения пилота; склоняются к НиР.", "name": "Василий Гиря", "role_ru": "Основатель и генеральный директор", "role_en": "Executive / Mining Infrastructure & Data Centers", "about": "Майнинг-инфраструктура и собственные ЦОД", "linkedin": ""}, {"company": "BitCluster", "site": "https://bitcluster.com/ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Виталий Борщенко", "role_ru": "Co-founder", "role_en": "Executive / Mining Data Center Infrastructure", "about": "Майнинг-инфраструктура в нескольких странах", "linkedin": "https://ru.linkedin.com/in/vitaliy-borshenko-28b76116b/en"}, {"company": "Promminer", "site": "https://promminer.ru/data_center/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Тимофей Кузьменко", "role_ru": "Генеральный директор", "role_en": "Executive / Mining Equipment & Data Center Solutions", "about": "Оборудование и ЦОД под ключ", "linkedin": ""}, {"company": "Яндекс", "site": "https://infra.yandex.ru/datacenters/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Интерес есть, но длинный цикл: внутренняя оценка безопасности/совместимости; без жёстких сроков, ждут техдоки.", "name": "Николай Иванов", "role_ru": "CEO, Yandex DC", "role_en": "Executive / Corporate Data Centers", "about": "Корпоративные дата-центры Яндекса", "linkedin": "https://ru.linkedin.com/in/nikolay-ivanov-25a5915b"}, {"company": "VK", "site": "https://vk.company/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Продуктивно: отказоустойчивость и энергоэффективность; follow-up — цена и сценарии (capacity, alerts, cooling).", "name": "Дмитрий Лазаренко", "role_ru": "Руководитель направления облачных и дата-сервисов VK Tech", "role_en": "Executive / Cloud & Data Services", "about": "Облачные и дата-сервисы VK", "linkedin": ""}, {"company": "Сбер", "site": "https://www.sber.ru/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Сильный отклик на predictive analytics и thermal-контроль флота; ждут КП и список приложений для пилота.", "name": "Игорь Ерилов", "role_ru": "Управляющий директор", "role_en": "Executive / Data Center Development & Infrastructure Planning", "about": "Owner-operator: развитие ЦОД и внутреннего облака", "linkedin": ""}, {"company": "Wildberries", "site": "https://www.wildberries.ru/", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Понравилось масштабирование и прозрачность эксплуатации; обсуждают 100k dev + 200k при успешном пилоте.", "name": "Сергей Камшилин", "role_ru": "Директор УИБ и инфраструктуры", "role_en": "Executive / In-house Data Center Infrastructure", "about": "In-house дата-центры маркетплейса", "linkedin": ""}, {"company": "DataLine (облако РТК)", "site": "https://www.dtln.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / IaaS и Tier III ЦОД в Москве", "role_en": "Облако на базе Tier III; экосистема Ростелеком‑ЦОД", "about": "https://www.comnews.ru/content/220779/2022-06-17/2022-w24/novyy-generalnyy-direktor-dataline", "linkedin": ""}, {"company": "Cloud.ru", "site": "https://cloud.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "И.о. генерального директора", "role_ru": "Executive / публичное облако и AI-сервисы", "role_en": "Крупный российский IaaS/PaaS", "about": "https://cloud.ru/blog/cloud-ru-obyavlyayet-ob-izmeneniyakh-v-rukovodstve-kompanii-2026", "linkedin": ""}, {"company": "Gcore", "site": "https://gcore.com/", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "CEO & Co-Founder", "role_ru": "Executive / edge, CDN, cloud, AI infrastructure", "role_en": "Edge/cloud с собственной инфраструктурой", "about": "https://lu.linkedin.com/in/andre-reitenbach-92a49020", "linkedin": ""}, {"company": "EdgeCenter (Эджцентр)", "site": "https://edgecenter.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / облако, CDN, Tier III", "role_en": "Облачные и edge-сервисы, ЦОД", "about": "https://ru.linkedin.com/in/michaelshurygin", "linkedin": ""}, {"company": "RUVDS", "site": "https://ruvds.com/ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор, сооснователь", "role_ru": "Executive / VPS/VDS, хостинг", "role_en": "Хостинг-провайдер виртуальных серверов", "about": "https://habr.com/ru/users/ntsaplin/", "linkedin": ""}, {"company": "Timeweb Cloud", "site": "https://timeweb.cloud/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "CEO", "role_ru": "Executive / публичное облако, IaaS, K8s", "role_en": "Облачная платформа Timeweb Cloud", "about": "https://ru.linkedin.com/in/sergeinaumov", "linkedin": ""}, {"company": "Beget", "site": "https://beget.com/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / хостинг, домены, VPS", "role_en": "Крупный хостинг и регистратор", "about": "https://ru.linkedin.com/in/%D0%B0%D0%BB%D0%B5%D0%BA%D1%81%D0%B0%D0%BD%D0%B4%D1%80-%D0%BA%D0%BB%D1%8E%D0%BA%D0%BE%D0%B2-3668ab134", "linkedin": ""}, {"company": "REG.RU", "site": "https://www.reg.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / домены, хостинг, облако", "role_en": "Регистратор и «Рег.облако»", "about": "https://www.reg.ru/", "linkedin": ""}, {"company": "NetAngels", "site": "https://www.netangels.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "CEO, сооснователь", "role_ru": "Executive / хостинг, VDS, dedicated", "role_en": "Уральский хостинг-провайдер", "about": "https://www.netangels.ru/", "linkedin": ""}, {"company": "КРОК (CROC)", "site": "https://www.croc.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / системная интеграция, ЦОД", "role_en": "Системный интегратор", "about": "https://www.croc.ru/", "linkedin": ""}, {"company": "Ай-Теко (I-Teco)", "site": "https://www.i-teco.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / интеграция, инфраструктура", "role_en": "Топ-ИТ-интегратор РФ", "about": "https://www.i-teco.ru/", "linkedin": ""}, {"company": "ЭР-Телеком Холдинг (Дом.ru)", "site": "https://ertelecom.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Президент", "role_ru": "Executive / телеком, ЦОД, облако", "role_en": "Федеральный телеком-холдинг", "about": "https://ertelecom.ru/", "linkedin": ""}, {"company": "Миран (дата-центр)", "site": "https://www.miran.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / colocation, IaaS в СПб", "role_en": "Коммерческий оператор ЦОД в Санкт-Петербурге", "about": "https://www.miran.ru/", "linkedin": ""}, {"company": "VK Tech (VK Cloud)", "site": "https://vktech.com/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / корпоративное ПО и VK Cloud", "role_en": "Экосистема VK Tech", "about": "https://vktech.com/", "linkedin": ""}, {"company": "IBS", "site": "https://ibs.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Управляющий партнёр «Разработка и тестирование»", "role_ru": "Executive / заказная разработка", "role_en": "ИТ-группа: интеграция и разработка", "about": "https://ibs.ru/", "linkedin": ""}, {"company": "HOSTKEY", "site": "https://hostkey.com/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "CEO", "role_ru": "Executive / dedicated, colocation, private cloud", "role_en": "Dedicated/colocation в Tier III ЦОД", "about": "https://hostkey.com/", "linkedin": ""}, {"company": "Аквариус (Aquarius)", "site": "https://aquarius.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / серверы, СХД для ЦОД", "role_en": "Производитель серверной инфраструктуры", "about": "https://aquarius.ru/", "linkedin": ""}, {"company": "YADRO", "site": "https://yadro.com/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / процессоры, серверы, СХД", "role_en": "Процессоры и серверы для ЦОД", "about": "https://yadro.com/", "linkedin": ""}, {"company": "Т1 (Т1 Облако / экосистема)", "site": "https://t1.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Президент, председатель правления ГК «Т1»", "role_ru": "Executive / ИТ-сервисы, облако", "role_en": "ИТ-холдинг: облако и интеграция", "about": "https://t1.ru/", "linkedin": ""}, {"company": "Росатом (Цифровые решения / ЦОД Xelent)", "site": "https://www.rusatom.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Директор по цифровизации (публичные выступления)", "role_ru": "Executive / корпоративная ИТ-стратегия", "role_en": "ЦОД и облачные инициативы Росатома", "about": "https://www.rusatom.ru/", "linkedin": ""}, {"company": "Обит (Obit)", "site": "https://www.obit.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / оператор связи и ЦОД в СПб", "role_en": "Региональный оператор ЦОД", "about": "https://www.obit.ru/", "linkedin": ""}, {"company": "Астра Линукс (Astra Linux)", "site": "https://astralinux.ru/", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Генеральный директор", "role_ru": "Executive / ОС для серверов в ЦОД", "role_en": "Отечественная ОС для госсектора и ЦОД", "about": "https://astralinux.ru/", "linkedin": ""}, {"company": "NEXTDC", "site": "https://www.nextdc.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Craig Scroggie", "role_ru": "CEO & Managing Director", "role_en": "Executive / DCaaS, hyperscale", "about": "Австралийский оператор дата-центров", "linkedin": "https://au.linkedin.com/in/craigscroggie"}, {"company": "AirTrunk", "site": "https://airtrunk.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Robin Khuda", "role_ru": "Founder & CEO", "role_en": "Executive / hyperscale APAC/ME", "about": "Hyperscale ЦОД в APAC", "linkedin": "https://www.linkedin.com/in/robinkhuda/"}, {"company": "Keppel Data Centres", "site": "https://www.keppeldatacentres.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Wong Wai Meng", "role_ru": "CEO, Data Centres", "role_en": "Executive / wholesale/colocation APAC", "about": "Разработка и эксплуатация ЦОД (Keppel)", "linkedin": "https://sg.linkedin.com/in/wongwaimeng"}, {"company": "ST Telemedia Global Data Centres (STT GDC)", "site": "https://www.sttelemediagdc.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Bruno Lopez", "role_ru": "President & Group CEO", "role_en": "Executive / APAC & Europe Data Centers", "about": "Оператор ЦОД в Азии и Европе", "linkedin": "https://sg.linkedin.com/in/bruno-lopez-01371010"}, {"company": "Scala Data Centers", "site": "https://scaladatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Marcos Peigo", "role_ru": "Co-Founder & CEO", "role_en": "Executive / LATAM Hyperscale", "about": "Hyperscale/LATAM цифровая инфраструктура", "linkedin": "https://br.linkedin.com/in/marcospeigo"}, {"company": "Global Switch", "site": "https://www.globalswitch.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Отметили ценность ранних сигналов по деградации активов; запросили упрощённый ROI-калькулятор и коммерческую вилку для 30-дневного пилота.", "name": "Ashley Muldoon", "role_ru": "CEO", "role_en": "Executive / carrier-neutral DC", "about": "Carrier/cloud-neutral ЦОД в Европе и Азии", "linkedin": "https://uk.linkedin.com/in/ashley-muldoon-446439153"}, {"company": "ODATA (Aligned)", "site": "https://www.odata.com.br", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Ricardo Alário", "role_ru": "CEO", "role_en": "Executive / LATAM hyperscale", "about": "LATAM hyperscale/colocation (часть Aligned)", "linkedin": "https://br.linkedin.com/company/odata"}, {"company": "TierPoint", "site": "https://www.tierpoint.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Jerry Kent", "role_ru": "Chairman & CEO", "role_en": "Enterprise colocation + cloud/DR", "about": "Enterprise colocation по США", "linkedin": "https://www.linkedin.com/in/jerry-kent-76620b190"}, {"company": "365 Data Centers", "site": "https://365datacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Derek Gillespie", "role_ru": "CEO & CRO", "role_en": "Executive / edge colocation", "about": "Edge/сетевой colocation в США", "linkedin": "https://www.linkedin.com/in/gillespiederek"}, {"company": "Stream Data Centers", "site": "https://streamdatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Michael Lahoud", "role_ru": "CEO", "role_en": "Executive / wholesale/hyperscale US", "about": "Девелопмент wholesale/гиперскейл в США", "linkedin": "https://www.linkedin.com/in/michael-lahoud-58bb357"}, {"company": "LightEdge", "site": "https://lightedge.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Rob Carter", "role_ru": "CEO", "role_en": "Executive / colocation + hybrid cloud", "about": "Colocation и hybrid cloud/IaaS США", "linkedin": "https://www.linkedin.com/in/rob-carter-1bb7a31a"}, {"company": "Data4 Group", "site": "https://www.data4.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Olivier Micheli", "role_ru": "Chairman & CEO", "role_en": "Executive / European colocation & AI", "about": "Европейский оператор ЦОД (FR/IT/ES)", "linkedin": "https://fr.linkedin.com/in/olivier-micheli-3988475"}, {"company": "T5 Data Centers", "site": "https://t5datacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Pete Marin", "role_ru": "CEO & Chairman", "role_en": "Executive / DC development US/global", "about": "Девелопмент и операции ЦОД", "linkedin": "https://www.linkedin.com/in/petemarin"}, {"company": "Macquarie Data Centres", "site": "https://www.macquariedatacentres.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Позитивно оценили приоритизацию рисков и формат executive-отчётов; ждут план внедрения 30/60/90 и критерии успеха пилота.", "name": "David Hirst", "role_ru": "Group Executive / CEO", "role_en": "Executive / sovereign AI-ready DC", "about": "AI-ready ЦОД в Австралии", "linkedin": "https://au.linkedin.com/in/david-s-hirst"}, {"company": "Compass Datacenters", "site": "https://www.compassdatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Chris Crosby", "role_ru": "CEO", "role_en": "Executive / hyperscale campuses", "about": "Гибкая модель гиперскейл-кампусов", "linkedin": "https://www.linkedin.com/in/chris-crosby-3542b71"}, {"company": "Netrality Data Centers", "site": "https://www.netrality.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Gerald M. Marshall", "role_ru": "President & CEO", "role_en": "Executive / network-rich colo", "about": "Network-rich colocation/interconnection США", "linkedin": "https://www.linkedin.com/in/gerald-m-marshall-68b38010"}, {"company": "Corscale Data Centers", "site": "https://www.corscale.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Robert Fields", "role_ru": "President & CEO", "role_en": "Executive / hyperscale development", "about": "Hyperscale девелопмент", "linkedin": "https://www.linkedin.com/in/robert-fields-71600640"}, {"company": "Aligned Data Centers", "site": "https://www.aligneddc.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Andrew Schaap", "role_ru": "CEO & Board Member", "role_en": "Executive / Hyperscale & sustainable DC", "about": "Гиперскейл-кампусы, охлаждение и AI/облако", "linkedin": "https://www.linkedin.com/in/andrewschaap1"}, {"company": "Chayora", "site": "https://www.chayora.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Oliver Jones", "role_ru": "Co-Founder & Senior Board Advisor", "role_en": "Board / China hyperscale campuses", "about": "Крупные кампусы ДЦ в Китае", "linkedin": "https://hk.linkedin.com/in/oliverjjones"}, {"company": "Crane Data Centers", "site": "https://www.cranedatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Matt Pfile", "role_ru": "Chief Executive Officer", "role_en": "Executive / Hyperscale development", "about": "Девелопер крупных ЦОД под AI/гиперскейл", "linkedin": "https://www.linkedin.com/in/pfile"}, {"company": "Pulsant", "site": "https://www.pulsant.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Rob Coupland", "role_ru": "Chief Executive Officer", "role_en": "Executive / UK edge & regional colo", "about": "Региональные и edge/colocation UK", "linkedin": "https://uk.linkedin.com/in/rob-coupland"}, {"company": "Ark Data Centres", "site": "https://www.arkdatacentres.co.uk", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Huw Owen", "role_ru": "Chief Executive Officer", "role_en": "Executive / UK sovereign & secure DC", "about": "Безопасные ДЦ UK/публичный сектор", "linkedin": "https://uk.linkedin.com/in/huw-owen-19312713"}, {"company": "QScale", "site": "https://www.qscale.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Martin Bouchard", "role_ru": "CEO & Founder", "role_en": "Executive / HPC & AI compute", "about": "AI/HPC-кампусы в Канаде", "linkedin": "https://ca.linkedin.com/in/martin-bouchard-1a9940210"}, {"company": "Bulk Infrastructure", "site": "https://www.bulkinfrastructure.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Jon Gravråk", "role_ru": "Chief Executive Officer", "role_en": "Executive / Nordic fibre & DC", "about": "Подводная/наземная связность и ДЦ в Северной Европе", "linkedin": "https://no.linkedin.com/in/jongravrak"}, {"company": "DCI Data Centers", "site": "https://www.dcidatacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Sumit Mukhija", "role_ru": "Chief Executive Officer", "role_en": "Executive / APAC wholesale & colo", "about": "Wholesale/colocation APAC (Brookfield)", "linkedin": "https://au.linkedin.com/in/smukhija"}, {"company": "Pure Data Centres (Pure DC)", "site": "https://www.puredc.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Gary Wojtaszek", "role_ru": "Executive Chairman & Interim CEO", "role_en": "Executive / Pan-EU & ME hyperscale", "about": "Гиперскейл/AI во FLAP-D и MEA", "linkedin": "https://www.linkedin.com/in/garywojtaszek"}, {"company": "nLighten", "site": "https://www.nlighten.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Harro Beusker", "role_ru": "Founder & Chief Executive Officer", "role_en": "Executive / European edge DC", "about": "Панъевропейская edge-платформа", "linkedin": "https://nl.linkedin.com/in/harro-beusker-228269"}, {"company": "Element Critical", "site": "https://elementcritical.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Ken Parent", "role_ru": "CEO", "role_en": "CEO", "about": "Colocation/ЦОД, США", "linkedin": "https://www.linkedin.com/in/ken-parent-a462996"}, {"company": "CloudHQ", "site": "https://cloudhq.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Hossein Fateh", "role_ru": "CEO", "role_en": "CEO", "about": "Wholesale/hyperscale ЦОД, США", "linkedin": "https://www.linkedin.com/in/hossein-fateh-298355"}, {"company": "phoenixNAP", "site": "https://www.phoenixnap.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Ian McClarty", "role_ru": "President", "role_en": "President", "about": "Хостинг, bare metal, ЦОД/облако, США", "linkedin": "https://www.linkedin.com/in/mcclarty"}, {"company": "MedOne", "site": "https://medone.co.il", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Ronnie Sadeh", "role_ru": "CEO", "role_en": "CEO", "about": "Оператор ЦОД, Израиль", "linkedin": "https://il.linkedin.com/in/ronnie-sadeh-9b24b27"}, {"company": "Quantum Loophole", "site": "https://quantumloophole.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Josh Snowhorn", "role_ru": "CEO", "role_en": "CEO", "about": "«Зелёные» площадки и магистраль, США", "linkedin": "https://www.linkedin.com/in/josh-snowhorn-7a327"}, {"company": "AUBix", "site": "https://aubix.net", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Andrew Albrecht", "role_ru": "CEO", "role_en": "CEO", "about": "Региональный ЦОД/кампус, США", "linkedin": "https://www.linkedin.com/in/andrewsalbrecht"}, {"company": "ValorC3 Data Centers", "site": "https://valorc3.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "James (Jim) Buie", "role_ru": "CEO", "role_en": "CEO", "about": "Colocation/cloud (ранее Tonaquint), США", "linkedin": "https://www.linkedin.com/in/jamesbuie"}, {"company": "Salute", "site": "https://salute.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Erich Sanchack", "role_ru": "CEO", "role_en": "CEO", "about": "Lifecycle-сервисы для ЦОД, США", "linkedin": "https://www.linkedin.com/in/erichsanchack"}, {"company": "Novva Data Centers", "site": "https://www.novva.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Wes Swenson", "role_ru": "CEO", "role_en": "CEO", "about": "Устойчивые/AI-ready ЦОД, США", "linkedin": "https://www.linkedin.com/company/novva-data-centers/"}, {"company": "Skybox Datacenters", "site": "https://skyboxdatacenters.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Понравилась практичность дашборда для daily-операций; ждут уточнение SLA и рамку ответственности на этапе пилота.", "name": "Rob Morris", "role_ru": "CEO", "role_en": "CEO", "about": "Enterprise ЦОД, США", "linkedin": "https://www.linkedin.com/in/rob-morris-a18470a"}, {"company": "Applied Digital", "site": "https://www.applieddigital.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Сфокусировались на HPC/AI-нагрузках и стабильности охлаждения; запросили отдельный сценарий для пиковых вычислительных окон.", "name": "Wes Cummins", "role_ru": "CEO", "role_en": "CEO", "about": "HPC/AI-инфраструктура (APLD), США", "linkedin": "https://www.linkedin.com/in/wes-cummins-63114481"}, {"company": "Nabiax", "site": "https://nabiax.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Интерес к прозрачности инцидентной воронки и прогнозам нагрузки; следующий шаг — локализация сценариев под их процесс change-management.", "name": "Emilio Díaz Expósito", "role_ru": "CEO", "role_en": "CEO", "about": "Colocation/hyperscale в Испании", "linkedin": "https://www.linkedin.com/company/nabiax/"}, {"company": "DC BLOX", "site": "https://www.dcblox.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Подтвердили интерес к региональному масштабированию и быстрому пилоту; попросили коммерческое предложение в двух пакетах (base/pro).", "name": "Jeff Uphues", "role_ru": "CEO", "role_en": "CEO", "about": "Tier III ЦОД на юго-востоке США", "linkedin": "https://www.linkedin.com/in/jeffreyuphues"}, {"company": "Sabey Data Centers", "site": "https://sabeydatacenters.com", "meeting": true, "letter": true, "followup": true, "replied": true, "summary": "Заинтересовал формат единого операционного окна для площадок; просят показать минимальный старт без перегрузки команды эксплуатации.", "name": "John Sabey", "role_ru": "CEO", "role_en": "CEO", "about": "Крупный частный оператор ЦОД, США", "linkedin": "https://www.linkedin.com/in/john-sabey-143b8"}, {"company": "EdgeCore Digital Infrastructure", "site": "https://edgecoredigital.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Lee Kestler", "role_ru": "CEO", "role_en": "CEO", "about": "Hyperscale ЦОД, США", "linkedin": "https://www.linkedin.com/in/leekestler"}, {"company": "Yondr Group", "site": "https://www.yondrgroup.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Aaron Wangenheim", "role_ru": "CEO", "role_en": "CEO", "about": "Hyperscale ЦОД, UK/EU/US", "linkedin": "https://uk.linkedin.com/in/awangenheim"}, {"company": "NetActuate", "site": "https://netactuate.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Mark Mahle", "role_ru": "CEO", "role_en": "CEO", "about": "Edge cloud, BGP anycast, IaaS", "linkedin": "https://www.linkedin.com/in/markmahle"}, {"company": "Centersquare", "site": "https://centersquaredc.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Spencer Mullee", "role_ru": "CEO", "role_en": "CEO", "about": "Colocation после Evoque + Cyxtera", "linkedin": "https://www.linkedin.com/in/spencermullee"}, {"company": "H5 Data Centers", "site": "https://h5datacenters.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Josh Simms", "role_ru": "CEO", "role_en": "CEO", "about": "Частный оператор ЦОД, США", "linkedin": "https://www.linkedin.com/in/josh-simms-b6a8b06"}, {"company": "DataVerge", "site": "https://dataverge.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Ray Sidler", "role_ru": "CEO", "role_en": "CEO", "about": "Carrier-neutral interconnection NYC", "linkedin": "https://www.linkedin.com/in/ray-sidler-4256723"}, {"company": "Bluebird Network", "site": "https://bluebirdnetwork.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Jason W. Adkins", "role_ru": "CEO", "role_en": "CEO", "about": "Fiber + 2 ЦОДа, Midwest USA", "linkedin": "https://www.linkedin.com/in/jason-adkins-10b2193"}, {"company": "Ascent", "site": "https://www.ascentcorp.com", "meeting": false, "letter": true, "followup": false, "replied": false, "summary": "", "name": "Robert Painter", "role_ru": "President", "role_en": "President", "about": "Mission-critical инжиниринг и ЦОД, США", "linkedin": "https://www.linkedin.com/company/ascent-llc./"}, {"company": "Digital Crossroad", "site": "https://digitalcrossroads.com", "meeting": false, "letter": true, "followup": false, "replied": true, "summary": "", "name": "Peter Feldman", "role_ru": "CEO", "role_en": "CEO", "about": "Wholesale ЦОД у Чикаго (Hammond, IN)", "linkedin": "https://www.linkedin.com/company/digitalcrossroads/"}];
+
+let currentFilter = 'all';
+let filtered = [...LEADS];
+
+// --- NAV ---
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// --- STATS ---
+const total = LEADS.length;
+const sent = LEADS.filter(r => r.letter).length;
+const replied = LEADS.filter(r => r.replied).length;
+const followups = LEADS.filter(r => r.followup).length;
+const meetings = LEADS.filter(r => r.meeting).length;
+const noReply = LEADS.filter(r => r.letter && !r.replied).length;
+
+// --- METRICS ---
+const metricsData = [
+  {val: total, label: 'Компаний в базе', sub: '126 таргетов', cls: 'blue'},
+  {val: sent, label: 'Писем отправлено', sub: '100% базы', cls: 'cyan'},
+  {val: replied, label: 'Ответили', sub: Math.round(replied/sent*100)+'% конверсия', cls: 'green'},
+  {val: followups, label: 'Фоллоуап', sub: 'Активный диалог', cls: 'amber'},
+  {val: meetings, label: 'Встреч проведено', sub: 'С саммари', cls: 'purple'},
+  {val: noReply, label: 'Без ответа', sub: 'Нужен повтор', cls: 'red'},
+];
+
+const metricsEl = document.getElementById('metrics');
+metricsData.forEach(m => {
+  metricsEl.innerHTML += `<div class="metric ${m.cls}">
+    <div class="metric-val">${m.val}</div>
+    <div class="metric-label">${m.label}</div>
+    <div class="metric-sub">${m.sub}</div>
+  </div>`;
+});
+
+const stages = [
+  {label: 'База', count: total, color: '#3d7fff'},
+  {label: 'Письмо', count: sent, color: '#06b6d4'},
+  {label: 'Ответ', count: replied, color: '#22c55e'},
+  {label: 'Фоллоуап', count: followups, color: '#f59e0b'},
+  {label: 'Встреча', count: meetings, color: '#a855f7'},
+];
+
+// --- CHARTS ---
+const chartColors = {
+  blue: '#3d7fff', green: '#22c55e', amber: '#f59e0b', purple: '#a855f7', red: '#ef4444', cyan: '#06b6d4'
+};
+
+// Bar chart - conversion
+new Chart(document.getElementById('chartConversion'), {
+  type: 'bar',
+  data: {
+    labels: stages.map(s => s.label),
+    datasets: [{
+      data: stages.map(s => s.count),
+      backgroundColor: stages.map(s => s.color + '88'),
+      borderColor: stages.map(s => s.color),
+      borderWidth: 1.5,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, plugins: {legend: {display: false}},
+    scales: {
+      x: {ticks: {color: '#9aa5bc', font: {size: 11}}, grid: {color: 'rgba(255,255,255,.04)'}},
+      y: {ticks: {color: '#9aa5bc', font: {size: 11}}, grid: {color: 'rgba(255,255,255,.04)'}}
+    }
+  }
+});
+
+const hotCount = LEADS.filter(r => r.meeting).length;
+
+// --- HOT DEALS ---
+// Score = meeting(5) + followup(2) + replied(1) + summary_length_bonus + money_signal
+function scoreLead(r) {
+  let s = 0;
+  if (r.meeting) s += 50;
+  if (r.followup) s += 20;
+  if (r.replied) s += 10;
+  if (r.summary) s += 5;
+  // money signals from summary
+  const text = (r.summary || '').toLowerCase();
+  if (/пилот|pilot|кп|loi|бюджет|budget|commit|сделк/i.test(text)) s += 15;
+  if (/\$|€|руб|k\s*dev|₽/.test(text)) s += 10;
+  if (/предложени|offer|proposal/i.test(text)) s += 8;
+  return s;
+}
+
+function dealStage(r) {
+  if (r.meeting && r.summary) {
+    const t = r.summary.toLowerCase();
+    if (/пилот|pilot|кп|loi|предложени|offer/i.test(t)) return {label:'Ждём КП / пилот', color:'#ef4444'};
+    if (/цен|pricing|бюджет|budget/i.test(t)) return {label:'Обсуждение цены', color:'#f59e0b'};
+    return {label:'После встречи', color:'#a855f7'};
+  }
+  if (r.meeting) return {label:'Встреча проведена', color:'#a855f7'};
+  if (r.followup) return {label:'В активном диалоге', color:'#f59e0b'};
+  return {label:'Новый контакт', color:'#5c6780'};
+}
+
+const hotLeads = [...LEADS].sort((a,b) => scoreLead(b) - scoreLead(a)).slice(0, 8);
+const hdEl = document.getElementById('hot-deals');
+hdEl.innerHTML = hotLeads.map((r, i) => {
+  const score = scoreLead(r);
+  const stage = dealStage(r);
+  const idx = LEADS.indexOf(r);
+  return `<div class="hd-item" onclick="openModal(${idx})">
+    <div class="hd-rank">${i+1}</div>
+    <div class="hd-info">
+      <div class="hd-company">${r.company}</div>
+      <div class="hd-meta" style="color:${stage.color}">● ${stage.label}</div>
+    </div>
+    <div class="hd-score">
+      <div class="hd-score-val" style="color:${score >= 70 ? '#ef4444' : score >= 50 ? '#f59e0b' : '#22c55e'}">${score}</div>
+      <div class="hd-score-lbl">score</div>
+    </div>
+  </div>`;
+}).join('');
+
+
+// --- PIPELINE KANBAN ---
+const pipelineCols = [
+  {id: 'cold', label: '❄️ Без ответа', color: '#5c6780', filter: r => !r.replied},
+  {id: 'warm', label: '✉️ Ответили', color: '#22c55e', filter: r => r.replied && !r.followup && !r.meeting},
+  {id: 'hot', label: '🔥 В диалоге', color: '#f59e0b', filter: r => r.followup && !r.meeting},
+  {id: 'meeting', label: '🤝 Встреча', color: '#a855f7', filter: r => r.meeting},
+];
+
+const pipelineEl = document.getElementById('pipeline-cols');
+pipelineCols.forEach(col => {
+  const items = LEADS.filter(col.filter);
+  let cards = items.map(r => `
+    <div class="meeting-card" style="margin-bottom:8px" onclick="openModal(${LEADS.indexOf(r)})">
+      <div style="font-weight:600;font-size:13px;margin-bottom:2px">${r.company}</div>
+      <div style="font-size:11px;color:var(--text2)">${r.name || '—'}</div>
+      ${r.summary ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${r.summary}</div>` : ''}
+    </div>`).join('');
+  pipelineEl.innerHTML += `
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:${col.color}18;border:1px solid ${col.color}44;border-radius:10px">
+        <span style="font-size:12px;font-weight:700;color:${col.color}">${col.label}</span>
+        <span style="margin-left:auto;background:${col.color}33;color:${col.color};padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700">${items.length}</span>
+      </div>
+      <div style="max-height:calc(100vh - 160px);overflow-y:auto">${cards || '<div style="color:var(--muted);font-size:12px;padding:10px">Нет лидов</div>'}</div>
+    </div>`;
+});
+
+// --- LEADS TABLE ---
+function getStage(r) {
+  if (r.meeting) return {label:'Встреча', cls:'badge-meeting'};
+  if (r.followup) return {label:'Диалог', cls:'badge', style:'background:var(--amber-dim);color:var(--amber)'};
+  if (r.replied) return {label:'Ответил', cls:'badge-yes'};
+  return {label:'Холодный', cls:'badge-no'};
+}
+
+function renderLeads() {
+  const tbody = document.getElementById('leads-body');
+  const search = document.getElementById('search').value.toLowerCase();
+  filtered = LEADS.filter(r => {
+    const matchSearch = !search || r.company.toLowerCase().includes(search) ||
+      (r.name||'').toLowerCase().includes(search) || (r.role_ru||'').toLowerCase().includes(search);
+    const matchFilter =
+      currentFilter === 'all' ? true :
+      currentFilter === 'hot' ? r.meeting :
+      currentFilter === 'replied' ? r.replied :
+      currentFilter === 'cold' ? !r.replied : true;
+    return matchSearch && matchFilter;
+  });
+
+  document.getElementById('leads-count').textContent = filtered.length + ' компаний';
+
+  tbody.innerHTML = filtered.map((r, i) => {
+    const stage = getStage(r);
+    const idx = LEADS.indexOf(r);
+    return `<tr onclick="openModal(${idx})">
+      <td class="td-company">${r.company}${r.site ? `<a href="${r.site}" target="_blank" onclick="event.stopPropagation()">${r.site.replace(/https?:\/\//,'').split('/')[0]}</a>` : ''}</td>
+      <td class="td-name">${r.name || '—'}<br><span style="color:var(--muted);font-size:11px">${r.role_ru||''}</span></td>
+      <td class="td-about">${r.about||''}</td>
+      <td>${r.letter ? '<span class="badge badge-yes">✓</span>' : '<span class="badge badge-no">—</span>'}</td>
+      <td>${r.replied ? '<span class="badge badge-yes">✓</span>' : '<span class="badge badge-no">—</span>'}</td>
+      <td>${r.followup ? '<span class="badge badge-yes">✓</span>' : '<span class="badge badge-no">—</span>'}</td>
+      <td>${r.meeting ? '<span class="badge badge-meeting">✓</span>' : '<span class="badge badge-no">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterLeads() { renderLeads(); }
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLeads();
+}
+
+renderLeads();
+
+// --- MEETINGS GRID ---
+const meetingsGrid = document.getElementById('meetings-grid');
+const meetingLeads = LEADS.filter(r => r.meeting);
+meetingsGrid.innerHTML = meetingLeads.map(r => {
+  const idx = LEADS.indexOf(r);
+  return `<div class="meeting-card" onclick="openModal(${idx})">
+    <div class="mc-header">
+      <div>
+        <div class="mc-company">${r.company}</div>
+        <div class="mc-role">${r.name ? r.name + (r.role_ru ? ' · ' + r.role_ru : '') : r.role_ru || ''}</div>
+      </div>
+      <span class="badge badge-meeting">Встреча</span>
+    </div>
+    ${r.summary ? `<div class="mc-summary">${r.summary}</div>` : ''}
+    <div class="mc-tags">
+      ${r.followup ? '<span class="badge badge-yes">Фоллоуап</span>' : ''}
+      ${r.replied ? '<span class="badge" style="background:var(--green-dim);color:var(--green)">Ответ</span>' : ''}
+    </div>
+  </div>`;
+}).join('');
+
+// --- MODAL ---
+function openModal(idx) {
+  const r = LEADS[idx];
+  const stages = [
+    {label: 'Письмо', done: r.letter},
+    {label: 'Ответ', done: r.replied},
+    {label: 'Фоллоуап', done: r.followup},
+    {label: 'Встреча', done: r.meeting},
+  ];
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="modal-company">${r.company}</div>
+        <div class="modal-role">${r.name ? r.name + (r.role_ru ? ' · ' + r.role_ru : '') : ''}</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-row">
+        <div class="modal-icon" style="background:var(--blue-glow)">🏢</div>
+        <div><div class="modal-field">О компании</div><div class="modal-value">${r.about || '—'}</div></div>
+      </div>
+      ${r.site ? `<div class="modal-row">
+        <div class="modal-icon" style="background:var(--cyan-dim)">🔗</div>
+        <div><div class="modal-field">Сайт</div><div class="modal-value"><a href="${r.site}" target="_blank" style="color:var(--blue)">${r.site}</a></div></div>
+      </div>` : ''}
+      ${r.linkedin ? `<div class="modal-row">
+        <div class="modal-icon" style="background:var(--blue-glow)">💼</div>
+        <div><div class="modal-field">LinkedIn</div><div class="modal-value"><a href="${r.linkedin}" target="_blank" style="color:var(--blue)">${r.name || 'Открыть'}</a></div></div>
+      </div>` : ''}
+      <div class="modal-row">
+        <div class="modal-icon" style="background:var(--green-dim)">📍</div>
+        <div>
+          <div class="modal-field">Этапы воронки</div>
+          <div class="pipeline-stages">
+            ${stages.map(s => `<span class="ps ${s.done ? 'done' : 'todo'}">${s.done ? '✓' : '○'} ${s.label}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+      ${r.summary ? `<div>
+        <div class="modal-summary">
+          <div class="modal-summary-title">📋 Саммари встречи</div>
+          ${r.summary}
+        </div>
+      </div>` : ''}
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
